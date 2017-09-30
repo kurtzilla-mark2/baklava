@@ -1,9 +1,9 @@
 import Sequelize from 'sequelize';
 
 const sequelize = new Sequelize(
-  'test_graphql_db',
-  'test_graphql_admin',
-  'iamapassword',
+  process.env.GRAPHQL_DB,
+  process.env.GRAPHQL_USER,
+  process.env.GRAPHQL_PASSWORD,
   {
     host: 'localhost',
     dialect: 'postgres',
