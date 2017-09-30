@@ -11,27 +11,30 @@ import _ from 'lodash';
 import DataLoader from 'dataloader';
 import passport from 'passport';
 import FacebookStrategy from 'passport-facebook';
+import dotenv from 'dotenv';
 
 import typeDefs from './schema';
 import resolvers from './resolvers';
 import models from './models';
 import { createTokens, refreshTokens } from './auth';
 
+dotenv.config();
+
 const schema = makeExecutableSchema({
   typeDefs,
   resolvers,
 });
 
-const SECRET = 'aslkdjlkaj10830912039jlkoaiuwerasdjflkasd';
+const SECRET = process.env.SERVER_SECRET;
 
 const app = express();
 
 passport.use(
   new FacebookStrategy(
     {
-      clientID: 'client_id',
-      clientSecret: 'client_secret',
-      callbackURL: 'https://8fc528a5.ngrok.io/auth/facebook/callback',
+      clientID: process.env.FACEBOOK_APP_ID,
+      clientSecret: process.env.FACEBOOK_APP_SECRET,
+      callbackURL: process.env.FACEBOOK_APP_CALLBACK_URL,
     },
     async (accessToken, refreshToken, profile, cb) => {
       // 2 cases
@@ -71,9 +74,7 @@ app.get(
   passport.authenticate('facebook', { session: false }),
   async (req, res) => {
     const [token, refreshToken] = await createTokens(req.user, SECRET);
-    res.redirect(
-      `http://localhost:8080/home?token=${token}&refreshToken=${refreshToken}`,
-    );
+    res.redirect(`http://localhost:8080/home?token=${token}&refreshToken=${refreshToken}`);
   },
 );
 
@@ -86,12 +87,7 @@ const addUser = async (req, res, next) => {
       req.user = user;
     } catch (err) {
       const refreshToken = req.headers['x-refresh-token'];
-      const newTokens = await refreshTokens(
-        token,
-        refreshToken,
-        models,
-        SECRET,
-      );
+      const newTokens = await refreshTokens(token, refreshToken, models, SECRET);
       if (newTokens.token && newTokens.refreshToken) {
         res.set('Access-Control-Expose-Headers', 'x-token, x-refresh-token');
         res.set('x-token', newTokens.token);
@@ -146,7 +142,7 @@ app.use(
 const server = createServer(app);
 
 models.sequelize.sync().then(() =>
-  server.listen(3000, () => {
+  server.listen(process.env.SERVER_PORT, () => {
     new SubscriptionServer(
       {
         execute,
